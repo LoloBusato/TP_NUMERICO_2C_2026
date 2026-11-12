@@ -3,7 +3,7 @@
 TP "El superniño" – CB051 Modelación Numérica / 9504 Análisis Numérico I (2do cuatrimestre 2026, FIUBA).
 Modelo simplificado de El Niño (T, H, P) resuelto con Euler explícito.
 
-**El informe está en [INFORME.md](INFORME.md)** (con figuras y fórmulas). Los scripts son ese informe ejecutado en orden: cada número y cada figura del informe sale de ellos.
+**El informe está en [INFORME.md](INFORME.md)** (también en [INFORME.pdf](INFORME.pdf)), con figuras y fórmulas. **Todo el código del informe está explicado y ejecutado en el notebook [TP_El_Super_Nino.ipynb](TP_El_Super_Nino.ipynb)**: cada número y cada figura del informe sale de él (abrirlo con `jupyter notebook TP_El_Super_Nino.ipynb` y ejecutar de arriba hacia abajo). Los scripts de abajo son la misma lógica en formato de línea de comandos.
 
 ## Cómo correrlo
 
@@ -21,7 +21,7 @@ Cada script también se puede correr por separado (en este orden).
 | `parte1_euler.py` | Referencia, errores, orden observado, estabilidad, umbral y análisis con el jacobiano / Floquet | 2.1 – 2.4 |
 | `parte2_severidad.py` | Caso nominal, sensibilidad a A, β, γ, σ, grilla de 2401 combinaciones, comparación | 3.1 – 3.4 |
 | `generar_excels_parte1.py` | Todos los Excel de la Parte 1 (en `excel/`) | 2.2, 2.3 |
-| `generar_informe.py` | Escribe `INFORME.md` a partir de `resultados/*.json` | — |
+| `generar_informe.py` | Escribe `INFORME_autogenerado.md` (no pisa `INFORME.md`) a partir de `resultados/*.json` | — |
 | `ejecutar_todo.py` | Corre todo en orden | — |
 
 Salidas: `resultados/` (figuras PNG, tablas CSV, JSON con los números) y `excel/`.

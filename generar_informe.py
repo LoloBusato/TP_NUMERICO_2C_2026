@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Escribe INFORME.md a partir de los resultados calculados por parte1_euler.py
+Escribe INFORME_autogenerado.md (no pisa INFORME.md, que se edita a mano) a partir de los resultados calculados por parte1_euler.py
 y parte2_severidad.py (resultados/*.json y resultados/*.png).
 
 Todos los números del texto salen de los JSON: nada se copia a mano.
@@ -550,7 +550,7 @@ def main():
     V["fuente_euler"] = inspect.getsource(tp.euler).rstrip()
     secciones.append(render(CODIGO))
 
-    ruta = os.path.join(RAIZ, "INFORME.md")
+    ruta = os.path.join(RAIZ, "INFORME_autogenerado.md")
     with open(ruta, "w", encoding="utf-8") as f:
         f.write("\n".join(secciones))
     print("Informe escrito en %s" % ruta)

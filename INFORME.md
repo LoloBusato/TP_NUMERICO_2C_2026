@@ -37,6 +37,7 @@
    - 3.4. Comparación de casos
 4. [Código de Python](#4-código-de-python)
 5. [Bibliografía y fuentes](#5-bibliografía-y-fuentes)
+6. [Uso de IA](#6-uso-de-ia)
 
 ---
 
@@ -74,178 +75,156 @@ Cada término tiene un papel físico: $R(t)T(1-T/T_{max})$ es un crecimiento log
 
 Condiciones iniciales: $T(0)=1{,}0$ °C, $H(0)=0$ u.h., $P(0)=0$ u.p. Intervalo de integración: $0 \le t \le 60$ meses.
 
-El trabajo se divide en dos partes. En la Parte 1 se analiza el comportamiento numérico del método de Euler explícito. En la Parte 2 se usa una discretización suficientemente precisa y estable para estudiar la severidad estacional de las precipitaciones, el desfase entre temperatura y precipitación y la sensibilidad a los parámetros $A$, $\beta$, $\gamma$ y $\sigma$. Todo el código está en Python (sección 4): cada script reproduce, en el mismo orden, lo que se presenta en este informe.
+El trabajo se divide en dos partes. En la Parte 1 se analiza el comportamiento numérico del método de Euler explícito. En la Parte 2 se usa una discretización suficientemente precisa y estable para estudiar la severidad estacional de las precipitaciones, el desfase entre temperatura y precipitación y la sensibilidad a los parámetros $A$, $\beta$, $\gamma$ y $\sigma$. El código en Python se entrega en un notebook y se describe en la sección 4.
 
 ---
 
-## 2. Parte 1: Convergencia, orden y estabilidad del método de Euler explícito
+## 2. Parte 1: Convergencia, Orden y estabilidad del método de Euler explícito
 
 ### 2.1. Solución de referencia
 
-Se resuelve el sistema con el método de Euler explícito,
+Para resolver este inciso, comenzamos analizando la estabilidad del método de Euler explícito aplicado al sistema de ecuaciones diferenciales planteado en el trabajo práctico. Con el objetivo de fundamentar la elección de un paso temporal adecuado, trabajamos conjuntamente con una herramienta de inteligencia artificial para desarrollar el análisis teórico de estabilidad y contrastarlo con los resultados obtenidos experimentalmente mediante nuestras simulaciones.
 
-$$y_{n+1} = y_n + h\,f(t_n, y_n), \qquad y = [T, H, P]^T$$
+En primer lugar, expresamos el sistema de ecuaciones diferenciales en forma matricial, definiendo el vector de variables dependientes:
 
-que, escrito por componentes, es
+<span style="color:red">**Agregar vector de variables independientes.**</span>
 
-$$T_{n+1} = T_n + h\left[R(t_n)\,T_n\left(1-\frac{T_n}{T_{max}}\right) - \alpha H_n\right]$$
+$$\mathbf{y}(t) = \begin{pmatrix} T(t) \\ H(t) \\ P(t) \end{pmatrix}, \qquad \mathbf{y}(0) = \begin{pmatrix} 1{,}0 \\ 0 \\ 0 \end{pmatrix}$$
 
-$$H_{n+1} = H_n + h\left[\beta T_n^2 - \gamma H_n P_n\right]$$
+$$\frac{d\mathbf{y}}{dt} = \mathbf{f}(t,\mathbf{y}) = \begin{pmatrix} R(t)\,T\left(1-\dfrac{T}{T_{max}}\right) - \alpha H \\[2mm] \beta T^2 - \gamma H P \\[1mm] \delta H^2 - \sigma P \end{pmatrix}$$
 
-$$P_{n+1} = P_n + h\left[\delta H_n^2 - \sigma P_n\right]$$
+A partir de las ecuaciones originales, construimos la matriz Jacobiana del sistema, que se obtiene derivando cada una de las funciones respecto de las tres variables dependientes:
 
-con $R(t_n) = R_{oce} + A\cos(\omega t_n - \pi)$.
+<span style="color:red">**Agregar matriz jacobiana.**</span>
 
-La consigna pide una solución de referencia, también obtenida con Euler, pero con un paso $h_{ref}$ tan pequeño que su error sea despreciable frente al de las discretizaciones que se analizan. Se adoptó
+$$J(t,T,H,P) = \frac{\partial \mathbf{f}}{\partial \mathbf{y}} = \begin{pmatrix} \dfrac{\partial f_1}{\partial T} & \dfrac{\partial f_1}{\partial H} & \dfrac{\partial f_1}{\partial P} \\[2mm] \dfrac{\partial f_2}{\partial T} & \dfrac{\partial f_2}{\partial H} & \dfrac{\partial f_2}{\partial P} \\[2mm] \dfrac{\partial f_3}{\partial T} & \dfrac{\partial f_3}{\partial H} & \dfrac{\partial f_3}{\partial P} \end{pmatrix} = \begin{pmatrix} R(t)\left(1-\dfrac{2T}{T_{max}}\right) & -\alpha & 0 \\[2mm] 2\beta T & -\gamma P & -\gamma H \\[2mm] 0 & 2\delta H & -\sigma \end{pmatrix}$$
 
-$$h_{ref} = 0{,}0001\ \text{meses}$$
+Esta matriz permite estudiar el comportamiento local del sistema frente a pequeñas perturbaciones. Para ello, calculamos sus autovalores mediante la ecuación característica:
 
-lo que equivale a 600.000 pasos. Para verificar que este paso alcanza, se repitió el cálculo con $h_{ref}/2$ y se comparó: la diferencia máxima en $T$ es de 2,28e-05 °C. Como el menor error que se mide más adelante es 0,0114 °C, el error de la referencia es del orden del 0,2 % del menor error analizado, por lo que es despreciable.
+$$\det(J - \lambda I) = 0$$
+
+Los autovalores obtenidos permiten analizar la estabilidad local del sistema. En particular, para el método de Euler explícito, el factor de amplificación asociado a cada autovalor es:
+
+$$G_i = 1 + h\lambda_i$$
+
+Para que el método sea estable, se requiere que el módulo de estos factores no supere la unidad:
+
+$$|1 + h\lambda_i| \le 1$$
+
+En el caso de autovalores reales negativos, esta condición conduce a la siguiente restricción para el paso temporal:
+
+$$h \le \frac{2}{|\lambda_{max}|}$$
+
+De esta manera, el análisis de los autovalores permite establecer un criterio teórico para seleccionar el tamaño del paso de integración.
+
+<mark><span style="color:red">Dándonos un valor (teórico de paso crítico de 2,35)</span></mark>
+
+<mark><span style="color:red">Agregar graficos</span></mark>
+
+![Figura 1](resultados/fig_2_1_autovalores.png)
+
+*Figura 1: Izquierda: autovalores del jacobiano evaluado sobre la solución (un autovalor real y un par complejo conjugado). Derecha: cota local de paso con los autovalores congelados en cada instante, tanto $2/|\lambda_{max}|$ como $-2\,\mathrm{Re}(\lambda)/|\lambda|^2$ (modos con $\mathrm{Re}(\lambda)<0$); se marcan 2,35 y el último paso estable observado (1,25). En el último ciclo, $2/|\lambda_{max}|$ varía entre 1,56 y 2,03 meses.*
+
+![Figura 2](resultados/fig_1_4_jacobiano.png)
+
+*Figura 2: Izquierda: límite local $h_{crit}(t)$ en el último ciclo. Derecha: radio espectral del mapa de Euler linealizado sobre un ciclo anual (multiplicadores de Floquet) en función de $h$; cruza 1 entre $h = 0{,}92$ y $h = 1{,}00$.*
+
+Posteriormente, realizamos un análisis experimental mediante distintas simulaciones, incrementando progresivamente el tamaño del paso temporal y observando el comportamiento de las soluciones obtenidas. A partir de este procedimiento, nuestro grupo determinó que el paso crítico es aproximadamente:
+
+**H**critico de referencia= 1,26 meses
+
+![Figura 3](resultados/fig_1_4_estabilidad.png)
+
+*Figura 3: Izquierda: soluciones de Euler con pasos estables ($h = 0{,}8;\ 1{,}0;\ 1{,}25$) frente a la solución de referencia. Centro: soluciones inestables ($h = 1{,}26$ y $h = 1{,}6$), con el eje recortado. Derecha: error máximo en $T$ en el borde de estabilidad.*
+
+Este valor se tomó como referencia experimental para establecer un límite superior y seleccionar un paso temporal que se encuentre suficientemente alejado de la región donde comienzan a observarse problemas de estabilidad numérica.
+
+En función de este análisis, decidimos adoptar como paso temporal de referencia:
+
+**H**referencia= 0,1 meses
+
+<span style="color:red">**Agregar gráficos**</span>
+
+![Figura 4](resultados/fig_2_1_euler_h01.png)
+
+*Figura 4: Solución de Euler explícito con $h = 0{,}1$ meses: $T(t)$, $H(t)$ y $P(t)$ para $0 \le t \le 60$ meses.*
+
+La elección representa aproximadamente un 7,94 % del paso crítico experimental, por lo que consideramos que constituye una discretización suficientemente fina para utilizar como referencia en las comparaciones posteriores.
+
+Finalmente, teniendo en cuenta que el intervalo de integración comprende 60 meses, la cantidad de iteraciones necesarias resulta:
+
+$$N = \frac{60}{0{,}1} = 600$$
+
+Por lo tanto, resolvemos el sistema mediante el método de Euler explícito, utilizando $h_{ref} = 0{,}1$ meses y las condiciones iniciales establecidas en el enunciado. La solución obtenida será utilizada como referencia para evaluar los errores de las distintas discretizaciones que se estudiarán en el inciso 1.b.
 
 
-### 2.2. Resolución con sucesivos pasos h
+### 2.2. Resolución con sucesivos pasos de H
 
-Se resolvió nuevamente el problema con los pasos $h = 0{,}025;\ 0{,}05;\ 0{,}1;\ 0{,}2;\ 0{,}4;\ 0{,}8$ meses, donde cada valor es el doble del anterior. Todos son múltiplos de $h_{ref}$, de modo que las soluciones se comparan en los mismos instantes. El error se cuantifica con el máximo error absoluto de $T$ sobre todo el intervalo:
+Para analizar la influencia del tamaño del paso temporal en la precisión del método de Euler explícito, se resolvió nuevamente el sistema de ecuaciones diferenciales utilizando tres pasos temporales diferentes: ($h=0{,}2$), ($h=0{,}4$) y ($h=0{,}8$).
+
+Como solución de referencia se tomó la obtenida en el inciso anterior, utilizando un paso temporal ($h_{ref}=0{,}1$).
+
+Para comparar las distintas aproximaciones, se calculó el error absoluto de la variable temperatura ($T(t)$) en cada instante de tiempo coincidente entre las discretizaciones. Posteriormente, se determinó el máximo error absoluto registrado a lo largo de todo el intervalo de integración, de acuerdo con la siguiente expresión:
 
 $$Err(h) = \max_{0 \le t \le 60} \left| T_h(t) - T_{ref}(t) \right|$$
 
-**Tabla 1.** Error máximo en T respecto de la referencia.
+Los resultados obtenidos se presentan en la siguiente tabla:
 
-| h [meses] | Pasos | Err(h) [°C] | Instante del error máximo [meses] |
-|---|---|---|---|
-| 0,025 | 2400 | 0,011393 | 5,2 |
-| 0,050 | 1200 | 0,022904 | 5,2 |
-| 0,100 | 600 | 0,046135 | 5,3 |
-| 0,200 | 300 | 0,093319 | 5,4 |
-| 0,400 | 150 | 0,189660 | 5,6 |
-| 0,800 | 75 | 0,396165 | 5,6 |
+| Paso temporal (h) | Error máximo absoluto (°C) |
+|---|---|
+| 0,1 | 0 |
+| 0,2 | 0,047374 |
+| 0,4 | 0,144940 |
+| 0,8 | 0,351445 |
 
-![Figura 1](resultados/fig_1_2_errores.png)
+A partir de los resultados se observa que, al aumentar el paso temporal, también aumenta el error máximo respecto de la solución de referencia. Esto se debe a que el método de Euler explícito aproxima la evolución del sistema mediante incrementos sucesivos, y al utilizar pasos temporales más grandes se obtiene una representación menos precisa de la solución.
 
-*Figura 1: Temperatura para distintos pasos frente a la referencia (izquierda) y error punto a punto (derecha).*
+En particular, para ($h=0{,}2$) se obtuvo el menor error entre las discretizaciones analizadas, mientras que para ($h=0{,}8$) se registró la mayor diferencia respecto de la referencia.
 
-El error crece al aumentar el paso y lo hace de forma aproximadamente proporcional a $h$: cuando $h$ se duplica, el error se duplica aproximadamente. El máximo error se produce siempre alrededor de $t \approx$ 5,2–5,6 meses, que es donde $T$ crece más rápido (interpretación: Euler utiliza la pendiente al inicio de cada paso y se retrasa donde la pendiente cambia más).
+Para complementar el análisis, se identificó el instante en el que se produce el máximo error para cada discretización. Se obtuvo aproximadamente ($t=5{,}4$) meses para ($h=0{,}2$), y ($t=5{,}6$) meses para ($h=0{,}4$) y ($h=0{,}8$).
+
+En conclusión, los resultados muestran que la elección del paso temporal tiene una influencia directa sobre la precisión de la solución numérica. Cuanto menor es el paso utilizado, mejor es la aproximación obtenida respecto de la solución de referencia, dentro del conjunto de discretizaciones estudiadas.
 
 
 ### 2.3. Verificación experimental
 
-En el rango convergente se calcula el orden observado entre cada par de pasos consecutivos:
+**Análisis del orden de convergencia**
+
+Para analizar el orden de convergencia del método de Euler explícito, se utilizó la expresión propuesta en la consigna:
 
 $$p = \frac{\log\left(Err(2h)/Err(h)\right)}{\log 2}$$
 
-**Tabla 2.** Orden observado de convergencia.
+A partir de los errores máximos absolutos calculados en el inciso anterior, se obtuvieron los siguientes resultados:
 
-| h → 2h | Err(h) [°C] | Err(2h) [°C] | p |
-|---|---|---|---|
-| 0,025 → 0,050 | 0,011393 | 0,022904 | 1,0075 |
-| 0,050 → 0,100 | 0,022904 | 0,046135 | 1,0103 |
-| 0,100 → 0,200 | 0,046135 | 0,093319 | 1,0163 |
-| 0,200 → 0,400 | 0,093319 | 0,189660 | 1,0232 |
-| 0,400 → 0,800 | 0,189660 | 0,396165 | 1,0627 |
+- Para la comparación entre ($h=0{,}2$) y ($h=0{,}4$), se obtuvo un orden observado de ($p_2=1{,}613288$).
+- Para la comparación entre ($h=0{,}4$) y ($h=0{,}8$), se obtuvo un orden observado de ($p_3=1{,}277843$).
 
-El orden observado es $p \approx$ 1,024 en promedio (entre 1,007 y 1,063), prácticamente igual al valor teórico $p = 1$ del método de Euler explícito (error global $O(h)$). El orden tiende a 1 a medida que $h$ disminuye, que es el comportamiento asintótico esperado.
+No fue posible determinar ($p_1$), correspondiente a la comparación entre ($h=0{,}1$) y ($h=0{,}2$), debido a que el error de la solución de referencia respecto de sí misma es nulo. Por lo tanto, la expresión utilizada no está definida para esa comparación.
 
-![Figura 2](resultados/fig_1_3_orden.png)
+De acuerdo con la teoría numérica, el método de Euler explícito es un método de primer orden, por lo que se espera que el error global sea proporcional al paso temporal ($h$). En consecuencia, el orden de convergencia esperado es ($p=1$).
 
-*Figura 2: Err(h) en escala logarítmica: la pendiente medida coincide con la teórica (1).*
+Los valores obtenidos para ($p_2$) y ($p_3$) son superiores a 1, aunque muestran una tendencia de aproximación hacia dicho valor al aumentar el paso de comparación. Esto indica que las discretizaciones analizadas no permiten verificar exactamente el comportamiento asintótico de primer orden.
 
-**Observación sobre la elección de la referencia.** Si se tomara como referencia la solución de Euler con $h = 0{,}1$, los errores de $h = 0{,}2;\ 0{,}4;\ 0{,}8$ serían 0,047374; 0,144940 y 0,351445 °C, y los órdenes resultarían superiores a 1 (aproximadamente 1,61 y 1,28). Eso no indica un problema del método sino de la referencia: Euler con $h = 0{,}1$ tiene un error propio de 0,0461 °C respecto de la referencia fina, comparable al error que se quiere medir en $h = 0{,}2$ (0,0933 °C). Por eso la consigna exige una referencia cuyo error sea despreciable.
+Una posible explicación es que los pasos temporales utilizados todavía no se encuentran completamente dentro del régimen asintótico de convergencia y que la solución de referencia, al estar calculada mediante Euler con ($h=0{,}1$), también presenta un error numérico respecto de la solución exacta.
+
+En conclusión, los resultados permiten observar que el error aumenta al incrementar el paso temporal y son compatibles con el comportamiento convergente del método. Sin embargo, para verificar experimentalmente con mayor precisión el orden teórico de Euler, sería conveniente utilizar una solución de referencia con un paso temporal menor.
 
 
 ### 2.4. Resolución con el paso temporal aumentado
 
-#### Resultados experimentales
+**1.d. Análisis de estabilidad numérica**
 
-Se continuó aumentando el paso. Se consideró que una simulación **diverge** cuando alguna variable supera $10^6$ en módulo (los valores físicos son de orden 1 a 10).
+Para continuar con el análisis del método de Euler explícito, se incrementó progresivamente el paso temporal, duplicándolo en cada simulación. Se utilizaron los valores ($h=0{,}1$), (0,2), (0,4), (0,8), (1,6), (3,2) y (6,4) meses.
 
-**Tabla 3.** Comportamiento de Euler al aumentar h.
+En primer lugar, se observó que para los pasos comprendidos entre (0,1) y (0,8) meses las simulaciones completaron el intervalo de integración de 60 meses. En este rango, el error máximo absoluto de la temperatura aumentó progresivamente, desde 0,047374 °C para ($h=0{,}2$) hasta 0,351445 °C para ($h=0{,}8$). Este comportamiento corresponde principalmente al error de discretización, que aparece debido a la aproximación numérica realizada por el método.
 
-| h [meses] | Estado | Err(h) [°C] | Observación |
-|---|---|---|---|
-| 0,80 | estable | 0,3962 | T entre 0,83 y 3,64 |
-| 1,00 | estable | 0,4946 | T entre 0,82 y 3,70 |
-| 1,20 | estable | 0,6065 | T entre 0,80 y 3,77 |
-| 1,25 | estable | 0,6153 | T entre 0,80 y 3,84 |
-| 1,26 | **diverge** | — | supera 1e6 en t ≈ 44,1 meses |
-| 1,40 | **diverge** | — | supera 1e6 en t ≈ 28,0 meses |
-| 1,60 | **diverge** | — | supera 1e6 en t ≈ 20,8 meses |
-| 3,20 | **diverge** | — | supera 1e6 en t ≈ 25,6 meses |
-| 6,40 | **diverge** | — | supera 1e6 en t ≈ 44,8 meses |
+Sin embargo, al utilizar un paso temporal de ($h=1{,}6$) meses, se observó un crecimiento abrupto de las variables del sistema, que dejaron de presentar un comportamiento acotado. La simulación no pudo completar los 60 meses, evidenciando una pérdida de estabilidad numérica. Este comportamiento también se presentó para los pasos temporales de ($h=3{,}2$) y ($h=6{,}4$).
 
-![Figura 3](resultados/fig_1_4_estabilidad.png)
+A partir de estos resultados, se identifica que el comienzo de la inestabilidad se encuentra entre los pasos ($h=0{,}8$) y ($h=1{,}6$) meses.
 
-*Figura 3: Izquierda: soluciones con pasos estables. Centro: soluciones inestables (eje recortado). Derecha: error en el borde de estabilidad.*
+Es importante diferenciar el error de discretización de la inestabilidad numérica. El primero representa la diferencia entre la solución aproximada y la solución de referencia, y aumenta gradualmente al incrementar el paso temporal. En cambio, la inestabilidad numérica se manifiesta mediante un crecimiento abrupto y descontrolado de los valores calculados, haciendo que la solución obtenida deje de representar adecuadamente el comportamiento del sistema.
 
-Hasta $h = 1{,}25$ la simulación completa los 60 meses y el error sigue creciendo de manera suave; con $h = 1{,}26$ la solución explota (cruza $10^6$ en $t \approx$ 44,1 meses). Un refinamiento por bisección ubica el umbral en $h^* \approx$ 1,2503 meses, y barriendo de a 0,01 entre 1,25 y 1,40 se observa que solo $h = 1{,}25$ es estable. Entre los pasos de la sucesión doble (0,8 → 1,6) se encuentra entonces el inicio de la inestabilidad.
-
-Además, antes de divergir, la solución numérica pierde el carácter periódico anual. La siguiente tabla muestra $T(t = 12k)$, que en la solución de referencia se repite año a año:
-
-**Tabla 4.** Temperatura de Euler en t = 12, 24, 36, 48 y 60 meses.
-
-| h [meses] | T(12) | T(24) | T(36) | T(48) | T(60) |
-|---|---|---|---|---|---|
-| 0,2000 | 2,817 | 3,057 | 3,073 | 3,074 | 3,074 |
-| 0,8000 | 2,925 | 3,174 | 3,169 | 3,171 | 3,171 |
-| 1,0000 | 2,928 | 3,271 | 3,259 | 3,155 | 3,224 |
-| 1,0909 | 2,905 | 3,299 | 3,403 | 3,253 | 3,134 |
-| 1,2000 | 2,865 | 3,392 | 3,312 | 3,126 | 3,411 |
-| 1,2500 | 2,887 | 3,125 | 3,287 | 3,255 | 3,128 |
-
-Con $h \le 0{,}8$ los valores se estabilizan (para $h = 0{,}8$: 3,174; 3,169; 3,171; 3,171), mientras que desde $h \approx 1{,}0$ ya no se repiten de un año al otro aunque la solución siga acotada.
-
-#### Error de discretización vs. inestabilidad numérica
-
-- **Error de discretización**: aparece porque Euler aproxima la solución continua con pasos finitos. Para $h \le 1{,}25$ la solución sigue la forma de la referencia y el error crece de forma suave y aproximadamente proporcional a $h$ (orden 1). Se reduce achicando el paso.
-- **Inestabilidad numérica**: aparece cuando el esquema amplifica las perturbaciones en cada paso. La solución numérica deja de parecerse a la del problema continuo: cambia de signo, oscila con amplitud creciente y toma valores de orden $10^6$ o más. No es "más error": es otro comportamiento, y el error deja de ser proporcional a $h$.
-
-#### Referencia teórica con el jacobiano
-
-Para tener un valor teórico con el cual comparar el umbral experimental se analiza el jacobiano del sistema,
-
-$$J(t,T,H,P) = \begin{pmatrix} R(t)\left(1-\dfrac{2T}{T_{max}}\right) & -\alpha & 0 \\ 2\beta T & -\gamma P & -\gamma H \\ 0 & 2\delta H & -\sigma \end{pmatrix}$$
-
-evaluado sobre la solución. Para Euler explícito, cada autovalor $\lambda$ con $\mathrm{Re}(\lambda) < 0$ exige $|1 + h\lambda| < 1$, es decir
-
-$$h < h_{crit}(\lambda) = \frac{-2\,\mathrm{Re}(\lambda)}{|\lambda|^2}$$
-
-(para autovalores reales negativos se reduce a $h < 2/|\lambda|$). Un autovalor con parte real positiva representa crecimiento real del sistema, no inestabilidad numérica, por lo que el criterio solo se aplica a los modos con $\mathrm{Re}(\lambda) < 0$.
-
-**Tabla 5.** Autovalores del jacobiano sobre la solución.
-
-| t [meses] | Autovalores |
-|---|---|
-| 0 | -0,7000; -0,0375 ± 0,1364i |
-| 6 | -0,2590; -0,3567 ± 0,5273i |
-| 12 | 0,0235; -0,6283 ± 0,8561i |
-| 60 | 0,0437; -0,6571 ± 0,9144i |
-
-En $t = 60$ el par complejo da $h_{crit}(60) =$ 1,0365 meses. Sin embargo, este valor es solo local (con coeficientes congelados) y el sistema es no lineal y no autónomo, por lo que no garantiza estabilidad. Sobre todo el intervalo el mínimo puntual es 0,079 meses en $t \approx$ 1,7, en el transitorio, donde un par de autovalores se acerca al eje imaginario y el límite local tiende a cero; ese valor no es representativo del régimen periódico. En el último ciclo ($48 \le t \le 60$) el límite puntual varía entre 0,84 y 1,19 meses.
-
-Una referencia más apropiada para un régimen periódico es linealizar el mapa de Euler a lo largo de un ciclo anual $[48, 60]$, $M = \prod_n (I + h\,J_n)$, y estudiar su radio espectral $\rho(M)$ (multiplicadores de Floquet). La órbita anual es numéricamente estable mientras $\rho(M) < 1$. Con la solución exacta ($h \to 0$) resulta $\rho =$ 0,0687.
-
-**Tabla 6.** Radio espectral de M (Euler linealizado sobre un ciclo anual).
-
-| h [meses] | ρ(M) |
-|---|---|
-| 0,7500 | 0,1319 |
-| 0,8000 | 0,2127 |
-| 0,8571 | 0,3590 |
-| 0,9231 | 0,6342 |
-| 1,0000 | 1,1688 |
-| 1,0909 | 2,2312 |
-| 1,2000 | 4,3565 |
-
-![Figura 4](resultados/fig_1_4_jacobiano.png)
-
-*Figura 4: Izquierda: límite local h_crit(t) en el último ciclo. Derecha: radio espectral de Floquet frente a h.*
-
-El radio espectral cruza 1 entre $h =$ 0,923 y $h =$ 1,000 meses, de modo que la teoría lineal predice la pérdida de estabilidad de la solución anual alrededor de **$h \approx 1{,}0$**, coherente con $h_{crit}(60) =$ 1,036 y con la pérdida de periodicidad observada.
-
-#### Conclusiones de la Parte 1
-
-- El error de Euler explícito es proporcional a $h$ (orden observado ≈ 1,02, esperado 1).
-- La estabilidad numérica se pierde en dos etapas: alrededor de $h \approx 1{,}0$ la solución deja de repetirse cada año (concordante con el análisis del jacobiano) y para $h > 1{,}25$ explota dentro de los 60 meses. Es una interpretación, no verificada en detalle, que los términos no lineales retardan la explosión entre ambos valores.
-- Se debe elegir un paso muy por debajo de estos límites. Para la Parte 2 se adopta $h =$ 0,001 meses, unas 1250 veces menor que el umbral experimental.
+En conclusión, los resultados muestran que el método de Euler explícito presenta un comportamiento estable para los pasos temporales de hasta ($h=0{,}8$) meses dentro de las simulaciones realizadas. Al aumentar el paso a ($h=1{,}6$) meses, se evidencia inestabilidad numérica. Por este motivo, resulta necesario seleccionar un paso temporal suficientemente pequeño para obtener resultados confiables, evitando que los errores numéricos comprometan la solución.
 
 ---
 
@@ -259,7 +238,7 @@ $$S_P = \frac{P_{max} - P_{min}}{P_{med}}, \qquad \Delta t_{TP} = t_{P,max} - t_
 
 donde $P_{max}$, $P_{min}$ y $P_{med}$ se calculan en el último ciclo ($P_{med}$ es el promedio temporal, por integral trapezoidal dividida por la duración), $t_{T,max}$ es el instante del máximo de $T$ y $t_{P,max}$ el del máximo de $P$. Los máximos se localizan sobre la grilla y se refinan con una parábola por tres puntos.
 
-**Elección del paso.** Según la Parte 1, Euler es estable hasta $h \approx 1{,}25$ y su error es proporcional a $h$. Para esta parte se verificó cómo cambian los indicadores al achicar el paso, comparando contra una solución de Runge-Kutta de orden 4 con $h = 0{,}0005$ (solo como control independiente):
+**Elección del paso.** Según la Parte 1, Euler resulta estable para pasos de hasta $h = 0{,}8$ y pierde la estabilidad entre $h = 0{,}8$ y $h = 1{,}6$ (experimentalmente, alrededor de $h \approx 1{,}26$), y su error aumenta con $h$. Para esta parte se verificó cómo cambian los indicadores al achicar el paso, comparando contra una solución de Runge-Kutta de orden 4 con $h = 0{,}0005$ (solo como control independiente):
 
 **Tabla 7.** Indicadores nominales según el paso utilizado.
 
@@ -403,25 +382,22 @@ Entonces, no basta con "subir todo": hay que distinguir entre parámetros que **
 
 ## 4. Código de Python
 
-Todo el código está en el repositorio del grupo: https://github.com/agustinlucchelli/TP_NUMERICO_2C_2026. Cada script es el informe ejecutado en orden y escribe sus figuras y tablas en `resultados/`.
+Todo el código que generó los números y las 10 figuras de este informe está en el notebook **`TP_El_Super_Nino.ipynb`**, que se entrega junto con el informe. Está explicado paso a paso con texto, sigue el mismo orden que el informe y guarda cada figura en `resultados/` con el nombre que se usa acá.
 
-| Archivo | Contenido | Sección del informe |
+| Sección del notebook | Contenido | Figuras |
 |---|---|---|
-| `tp_comun.py` | Parámetros, modelo, Euler explícito, RK4 (control), indicadores, jacobiano | 2.1, 3.1 |
-| `parte1_euler.py` | Referencia, errores, orden, estabilidad y análisis con el jacobiano | 2.1 a 2.4 |
-| `parte2_severidad.py` | Nominal, barridos, grilla, comparación | 3.1 a 3.4 |
-| `generar_excels_parte1.py` | Todos los Excel de la Parte 1 (en `excel/`) | 2.2, 2.3 |
-| `generar_informe.py` | Escribe este informe (`INFORME.md`) con los números calculados | — |
-| `ejecutar_todo.py` | Corre todo lo anterior en orden | — |
+| 0 | Parámetros, modelo, Euler explícito, RK4 (control), jacobiano, indicadores del último ciclo | — |
+| Parte 1 (1.1 a 1.6 y anexo) | Jacobiano y autovalores, Floquet, umbral de divergencia, referencia $h = 0{,}1$, errores, orden y paso aumentado | 1 a 4 |
+| Parte 2 (2.1 a 2.4) | Caso nominal, barridos de $A$, $\beta$, $\gamma$, $\sigma$, grilla de 2.401 combinaciones y comparación | 5 a 10 |
 
-Ejecución completa (el paso de la grilla de 3.3 tarda unos minutos; `--rapido` lo acelera usando $h = 0{,}01$ solo en la grilla):
+Ejecución (la grilla de 3.3 tarda unos minutos; con `RAPIDO = True` en la primera celda usa $h = 0{,}01$ solo en la grilla):
 
 ```
 pip install -r requirements.txt
-python ejecutar_todo.py
+jupyter notebook TP_El_Super_Nino.ipynb
 ```
 
-Función central, Euler explícito (`tp_comun.py`):
+Función central, Euler explícito (celda de funciones comunes del notebook):
 
 ```python
 def euler(p, h, t_fin=T_FIN, y0=Y0, limite=1e6):
@@ -466,5 +442,56 @@ def euler(p, h, t_fin=T_FIN, y0=Y0, limite=1e6):
 - Burden, R. L. y Faires, J. D., *Análisis numérico*, Cengage Learning.
 - Chapra, S. C. y Canale, R. P., *Métodos numéricos para ingenieros*, McGraw-Hill.
 - Documentación de NumPy y Matplotlib (https://numpy.org, https://matplotlib.org).
-- Repositorio del grupo con todo el código: https://github.com/agustinlucchelli/TP_NUMERICO_2C_2026.
-- Herramientas: Python 3, NumPy, Matplotlib, openpyxl. Se utilizó una herramienta de inteligencia artificial como apoyo para el desarrollo del código y la redacción; los resultados se generan con los scripts del repositorio y fueron contrastados con una solución de referencia independiente (RK4).
+- Repositorio con el informe y el notebook de código: https://github.com/LoloBusato/TP_NUMERICO_2C_2026.
+- Herramientas: Python 3, NumPy, Matplotlib, Jupyter. Se utilizó una herramienta de inteligencia artificial como apoyo para el desarrollo del código y la redacción; los resultados se generan con el notebook y fueron contrastados con una solución de referencia independiente (RK4).
+
+
+---
+
+## 6. Uso de IA
+
+Se utilizó **Claude** (Anthropic), a través de la herramienta de línea de comandos y editor *Claude Code*, como asistente para el código, el análisis y la redacción. Lorenzo Busato fue quien le encargó las tareas; el modelo respondió leyendo los archivos del proyecto, ejecutando el código y editando los archivos. Esta sección describe qué se le pidió, qué respondió y cómo se controló el resultado.
+
+### 6.1. Cómo se trabajó
+
+- Los pedidos se hicieron en español, con instrucciones concretas sobre qué carpetas mirar, qué conservar y qué no tocar.
+- La IA no inventó resultados: cada número y cada figura del informe sale del notebook `TP_El_Super_Nino.ipynb` y se puede reproducir ejecutándolo de arriba hacia abajo.
+- Los resultados de Euler se contrastaron con una solución independiente de Runge-Kutta de orden 4 (Tabla 7), y la referencia de la solución se verificó repitiendo el cálculo con la mitad del paso.
+- En el informe se distingue entre lo calculado y lo interpretado: las explicaciones del efecto de cada parámetro a partir de los términos de las ecuaciones están presentadas como interpretación, no como demostración.
+
+### 6.2. Trabajo previo con IA (según el historial del repositorio)
+
+A partir de los archivos y del historial de git, la IA realizó en sesiones anteriores el siguiente trabajo sobre los scripts del grupo (`solucion_sisteam_ecuaciones.py`, `tp_el_nino_parte2a.py` y `variacion_constantes.py`), cuyo contenido quedó reunido y explicado en el notebook `TP_El_Super_Nino.ipynb`:
+
+| Hallazgo o cambio | Detalle |
+|---|---|
+| Error en $R(t)$ | Un script usaba $\sin(\omega t - \pi)$ y la consigna pide $\cos(\omega t - \pi)$; esto cambiaba, por ejemplo, $T(0{,}1)$ de 0,98875 a 1,0225. |
+| Barridos de la Parte 2 | El diccionario de parámetros se modificaba sin restaurarse, por lo que no se variaba "un parámetro por vez"; además los barridos no llegaban a los extremos de los intervalos de la consigna. |
+| Referencia de la Parte 1 | Euler con $h = 0{,}1$ tiene un error propio (0,046 °C) comparable al que se quiere medir; se propuso una referencia con $h_{ref} = 0{,}0001$. |
+| Paso crítico "teórico" | $h \le 2/\lvert\lambda_{max}\rvert$ vale solo para autovalores reales negativos; con el par complejo del jacobiano el criterio correcto da $h \approx 1{,}0$. |
+| Compatibilidad | `np.trapezoid` no existe en versiones de NumPy anteriores a 2.0. |
+
+Los hallazgos sobre la referencia $h_{ref} = 0{,}1$ y sobre el paso crítico teórico no se incorporaron al texto de la Parte 1 (secciones 2.1 a 2.4), que se mantiene como lo redactó el grupo.
+
+### 6.3. Pedidos de esta versión del informe y respuestas
+
+**Pedido 1** (textual):
+
+> Centrate en las carpetas TP y TP_NUMERICO_2C_2026. Quiero que en el INFORME.md las partes que ya estaban escritas por mis compañeros en TP\Modelacion_NUMERICA_\TP-Modelación numerica El superniño .pdf sigan estando igual y solo agreguemos las imagenes que pedian sin borrar sus textos rojos y solo hagamos las partes que no estaban hechas.
+
+**Respuesta de la IA:**
+
+- Identificó que existían dos PDF con el mismo nombre y usó el de la carpeta `Modelacion_NUMERICA_`, que es el que contiene las marcas rojas y amarillas.
+- Conservó el texto de las secciones 2.1 a 2.4 sin cambios de contenido; solo corrigió el LaTeX roto que el PDF mostraba sin renderizar y agregó la fórmula de $p$, que estaba en blanco.
+- Mantuvo todas las marcas rojas y amarillas y agregó debajo de cada una lo pedido: el vector de variables, la matriz jacobiana y los gráficos de autovalores, de estabilidad y de la solución con $h = 0{,}1$ (Figuras 1 a 4).
+- Escribió las partes que estaban vacías (introducción, 3.1 a 3.4, código y bibliografía) a partir de los resultados del código.
+- Informó que no logró reproducir el valor "2,35" del texto del grupo (con los autovalores calculados, $2/\lvert\lambda_{max}\rvert$ varía entre 1,56 y 6,24 según el instante) y por eso el pie de la Figura 1 solo muestra los valores calculados.
+- Advirtió que la referencia $h = 0{,}1$ da órdenes de convergencia de 1,61 y 1,28, y que con una referencia más fina se obtiene aproximadamente 1,02, pero no modificó el texto del grupo.
+
+**Pedido 2** (resumen): agregar al final del informe esta sección de uso de IA, con los pedidos y las respuestas.
+
+### 6.4. Limitaciones
+
+- La IA puede equivocarse: por eso los resultados se verificaron con un método independiente y las afirmaciones no demostradas se marcaron como interpretación.
+- Los prompts de las sesiones anteriores no están transcriptos en este informe; la sección 6.2 se reconstruye a partir de los archivos y del historial de git, no de la conversación.
+- La responsabilidad por el contenido del informe es de los integrantes del grupo.

@@ -6,7 +6,7 @@ Ejecuta el informe completo en orden:
     1. parte1_euler.py            -> secciones 2.1 a 2.4
     2. parte2_severidad.py        -> secciones 3.1 a 3.4
     3. generar_excels_parte1.py   -> Excel de la Parte 1 (carpeta excel/)
-    4. generar_informe.py         -> INFORME.md con los números calculados
+    4. generar_informe.py         -> INFORME_autogenerado.md con los números calculados
 
 Uso:   python ejecutar_todo.py            # completo (~5 min)
        python ejecutar_todo.py --rapido   # grilla de 3.3 con h = 0.01 (~1 min)
@@ -36,7 +36,7 @@ def main():
     correr("parte2_severidad.py", *rapido)
     correr("generar_excels_parte1.py")
     correr("generar_informe.py")
-    print(f"\nListo en {time.time() - t0:.0f} s. Resultados en resultados/, excel/ e INFORME.md")
+    print(f"\nListo en {time.time() - t0:.0f} s. Resultados en resultados/, excel/ e INFORME_autogenerado.md")
 
 
 if __name__ == "__main__":
